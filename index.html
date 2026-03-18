@@ -3,109 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cotizador de Ventanas</title>
+    <title>OptiCutter - Optimización de Corte</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .form-container {
-            max-width: 600px;
-            margin: auto;
             padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        label {
-            display: block;
-            margin: 10px 0 5px;
+        .container {
+            margin: 20px 0;
         }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+        label, input, button {
+            margin: 5px 0;
+            padding: 10px;
         }
         button {
+            cursor: pointer;
             background-color: #4CAF50;
             color: white;
-            padding: 10px 20px;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
         }
-        button:hover {
-            background-color: #45a049;
+        .output {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f4f4f4;
         }
     </style>
 </head>
 <body>
 
-<div class="form-container">
-    <h2>Cotizador de Ventanas</h2>
-    <form id="cotizadorForm">
-        <label for="descripcion">Descripción:</label>
-        <input type="text" id="descripcion" name="descripcion" required>
+<h1>OptiCutter - Optimización de Corte de Materiales</h1>
 
-        <label for="cantidad">Cantidad:</label>
-        <input type="number" id="cantidad" name="cantidad" required>
-
-        <label for="precio">Precio Total (por unidad):</label>
-        <input type="number" id="precio" name="precio" required>
-
-        <button type="submit">Generar Cotización</button>
-    </form>
+<div class="container">
+    <label for="length">Longitud de pieza:</label>
+    <input type="number" id="length" placeholder="Longitud de la pieza a cortar" min="1">
+    <label for="quantity">Cantidad de piezas:</label>
+    <input type="number" id="quantity" placeholder="Cantidad de piezas" min="1">
+    <button onclick="calculateCut()">Calcular Corte</button>
 </div>
 
-<script src="https://apis.google.com/js/api.js"></script>
+<div class="output" id="result"></div>
+
 <script>
-    // Aquí se puede agregar la lógica de conexión con Google Sheets y la API para guardar los datos
-    function initClient() {
-        gapi.client.init({
-            apiKey: 'TU_API_KEY', // Aquí va tu API Key
-            clientId: 'TU_CLIENT_ID', // Aquí va tu Client ID
-            scope: 'https://www.googleapis.com/auth/spreadsheets',
-            discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
-        }).then(function() {
-            console.log("Google API Client Initialized");
-        });
-    }
+    // Algoritmo Best-Fit
+    function bestFit(items, binCapacity) {
+        let bins = [];
+        
+        items.forEach(item => {
+            let bestBinIndex = -1;
+            let minSpaceLeft = binCapacity + 1;
 
-    function saveDataToGoogleSheet(data) {
-        const params = {
-            spreadsheetId: 'TU_ID_DE_HOJA_DE_CALCULO',  // ID de tu hoja de Google Sheets
-            range: 'Sheet1!A1',  // El rango de celdas donde quieres ingresar los datos
-            valueInputOption: 'RAW',
-            resource: {
-                values: [
-                    [data.descripcion, data.cantidad, data.precio]
-                ]
+            // Buscar el contenedor que mejor se ajusta
+            for (let i = 0; i < bins.length; i++) {
+                let spaceLeft = binCapacity - bins[i];
+                if (spaceLeft >= item && spaceLeft < minSpaceLeft) {
+                    minSpaceLeft = spaceLeft;
+                    bestBinIndex = i;
+                }
             }
-        };
-        gapi.client.sheets.spreadsheets.values.append(params).then(function(response) {
-            console.log("Datos guardados en Google Sheets", response);
+
+            // Si se encuentra el mejor contenedor
+            if (bestBinIndex !== -1) {
+                bins[bestBinIndex] += item;
+            } else {
+                bins.push(item);  // Crear un nuevo contenedor
+            }
         });
+
+        return bins.length;  // Devolver el número de contenedores necesarios
     }
 
-    document.getElementById('cotizadorForm').addEventListener('submit', function(event) {
-        event.preventDefault();
+    // Función para manejar la entrada del usuario
+    function calculateCut() {
+        const length = parseFloat(document.getElementById('length').value);
+        const quantity = parseInt(document.getElementById('quantity').value);
 
-        const descripcion = document.getElementById('descripcion').value;
-        const cantidad = document.getElementById('cantidad').value;
-        const precio = document.getElementById('precio').value;
+        if (!length || !quantity || length <= 0 || quantity <= 0) {
+            alert("Por favor ingresa valores válidos.");
+            return;
+        }
 
-        const data = {
-            descripcion: descripcion,
-            cantidad: cantidad,
-            precio: precio
-        };
+        // Generar el arreglo de piezas a cortar
+        const items = Array(quantity).fill(length);
+        const binCapacity = 1000;  // Capacidad del material de corte (por ejemplo, 1000)
 
-        saveDataToGoogleSheet(data); // Guardar los datos en Google Sheets
-    });
+        // Calcular el número de contenedores necesarios
+        const result = bestFit(items, binCapacity);
 
-    gapi.load('client:auth2', initClient);
+        // Mostrar el resultado
+        document.getElementById('result').innerHTML = `Se necesitan ${result} contenedores para cortar todas las piezas.`;
+    }
 </script>
 
 </body>
