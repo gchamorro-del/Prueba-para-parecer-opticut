@@ -28,6 +28,9 @@
             border: 1px solid #ddd;
             background-color: #f4f4f4;
         }
+        .material-container {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -40,6 +43,11 @@
     <label for="quantity">Cantidad de piezas:</label>
     <input type="number" id="quantity" placeholder="Cantidad de piezas" min="1">
     <button onclick="calculateCut()">Calcular Corte</button>
+</div>
+
+<div class="material-container">
+    <label for="materialStock">Tiras de material disponible (longitudes separadas por coma):</label>
+    <input type="text" id="materialStock" placeholder="Ejemplo: 500, 800, 1000">
 </div>
 
 <div class="output" id="result"></div>
@@ -77,21 +85,31 @@
     function calculateCut() {
         const length = parseFloat(document.getElementById('length').value);
         const quantity = parseInt(document.getElementById('quantity').value);
+        const materialStock = document.getElementById('materialStock').value.split(',').map(Number);
 
         if (!length || !quantity || length <= 0 || quantity <= 0) {
-            alert("Por favor ingresa valores válidos.");
+            alert("Por favor ingresa valores válidos para longitud y cantidad.");
+            return;
+        }
+
+        // Verificar si las tiras de material están disponibles
+        if (materialStock.length === 0 || materialStock.some(val => isNaN(val) || val <= 0)) {
+            alert("Por favor ingresa las tiras de material válidas.");
             return;
         }
 
         // Generar el arreglo de piezas a cortar
         const items = Array(quantity).fill(length);
-        const binCapacity = 1000;  // Capacidad del material de corte (por ejemplo, 1000)
+        let binsUsed = 0;
 
-        // Calcular el número de contenedores necesarios
-        const result = bestFit(items, binCapacity);
+        // Contar cuántas tiras de material necesitamos
+        materialStock.forEach(binCapacity => {
+            const result = bestFit(items, binCapacity);
+            binsUsed += result;
+        });
 
         // Mostrar el resultado
-        document.getElementById('result').innerHTML = `Se necesitan ${result} contenedores para cortar todas las piezas.`;
+        document.getElementById('result').innerHTML = `Se necesitan ${binsUsed} tiras de material para cortar todas las piezas.`;
     }
 </script>
 
